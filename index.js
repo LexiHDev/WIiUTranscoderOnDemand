@@ -30,8 +30,7 @@ app.get('/', (req, res) => {
 // Track running ffmpeg processes to avoid duplicates
 const runningHLS = {};
 
-
-// Route to begin HLS conversion and redirect to playlist route
+// Route to transcode and serve HLS playlist for a media file by ID
 app.get('/media/:id', (req, res) => {
     const files = getMediaFiles();
     const file = files.find(f => f.id === req.params.id);
@@ -42,18 +41,20 @@ app.get('/media/:id', (req, res) => {
     const hlsDir = path.join(__dirname, 'hls', String(file.id));
     const playlistPath = path.join(hlsDir, 'index.m3u8');
 
+
     // If playlist exists but no process is running, check if it's complete
     let resumeIncomplete = false;
     if (fs.existsSync(playlistPath) && !runningHLS[file.id]) {
         const playlistContent = fs.readFileSync(playlistPath, 'utf8');
+        // If playlist is incomplete (no #EXT-X-ENDLIST), resume conversion
         if (!playlistContent.includes('#EXT-X-ENDLIST')) {
             resumeIncomplete = true;
         }
     }
 
-    // If process is running, just redirect to playlist route
+    // If process is running, serve playlist immediately
     if (runningHLS[file.id]) {
-        return res.redirect(`/playlist/${file.id}`);
+        return res.redirect(`/hls/${file.id}/index.m3u8`);
     }
 
     // Create HLS directory for this file if needed
@@ -77,29 +78,24 @@ app.get('/media/:id', (req, res) => {
         '-hls_segment_filename', path.join(hlsDir, 'segment%03d.ts'),
         playlistPath
     ];
+    // No need for -hls_flags append_list; just rerun the same command to resume/complete VOD
     const ffmpeg = spawn('ffmpeg', ffmpegArgs, { detached: true, stdio: ['ignore', 'ignore', 'pipe'] });
+
     runningHLS[file.id] = ffmpeg;
+
     ffmpeg.stderr.on('data', data => {
         console.error(`ffmpeg stderr: ${data}`);
     });
+
     ffmpeg.on('close', code => {
         delete runningHLS[file.id];
         if (code !== 0) {
             console.error('Transcoding to HLS failed');
         }
     });
-    // Redirect to the new playlist route
-    res.redirect(`/playlist/${file.id}`);
-});
 
-// Serve the m3u8 playlist on a different route
-app.get('/playlist/:id', (req, res) => {
-    const playlistPath = path.join(__dirname, 'hls', req.params.id, 'index.m3u8');
-    if (!fs.existsSync(playlistPath)) {
-        return res.status(404).send('Playlist not found');
-    }
-    res.setHeader('Content-Type', 'video/mp2t');
-    fs.createReadStream(playlistPath).pipe(res);
+    // Immediately redirect to playlist (client will poll for segments as they are created)
+    res.redirect(`/hls/${file.id}/index.m3u8`);
 });
 
 // Serve HLS segments and playlists statically
