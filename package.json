@@ -1,0 +1,19 @@
+{
+  "name": "wiiutranscoderondemand",
+  "version": "1.0.0",
+  "description": "Transcodes videos from media folder, so that it can be played on the WiiU Live.",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
