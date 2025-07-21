@@ -5,7 +5,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const app = express();
-const MEDIA_DIR = path.join(__dirname, 'media');
+const MEDIA_DIR = process.env.MEDIA_DIR ? path.resolve(process.env.MEDIA_DIR) : path.join(__dirname, 'media');
 exports.MEDIA_DIR = MEDIA_DIR;
 
 // NVENC toggle arg
@@ -24,13 +24,13 @@ if (!fs.existsSync(MEDIA_DIR)) {
 }
 // Populate images.
 mediaUtils = require('./mediaUtils');
-mediaUtils.generateThumbnails();
+mediaUtils.generateThumbnails(MEDIA_DIR);
 
 app.set('view engine', 'pug');
 app.use(express.static(path.join(__dirname, 'public/css')));
 app.use(express.static(path.join(__dirname, 'public/js')));
-app.use(express.static(path.join(__dirname, 'images')));
-
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
+app.use('/images', express.static(path.join(__dirname, 'public/images')));
 // Serve a list of media files with their IDs
 // app.get('/', (req, res) => {
     //     const files = getMediaFiles();
@@ -41,7 +41,7 @@ app.use(express.static(path.join(__dirname, 'images')));
     // });
     
     app.get('/', (req, res) => {
-        res.render('index', {files: getMediaFiles()});
+        res.render('index', {files: getMediaFiles(MEDIA_DIR)});
     })
     
     // Track running ffmpeg processes to avoid duplicates
@@ -49,7 +49,7 @@ app.use(express.static(path.join(__dirname, 'images')));
     
     // Route to transcode and serve HLS playlist for a media file by ID
     app.get('/media/:id', (req, res) => {
-        const files = getMediaFiles();
+        const files = getMediaFiles(MEDIA_DIR);
         const file = files.find(f => f.id === req.params.id);
         if (!file) {
             return res.status(404).send('File not found');
@@ -87,6 +87,7 @@ app.use(express.static(path.join(__dirname, 'images')));
             // Common ffmpeg args
             const commonArgs = [
                 '-vf', 'scale=1920:1080',
+                '-af', 'volume=15dB',
                 '-c:a', 'aac',
                 '-b:a', '128k',
                 '-r', '30',
@@ -123,7 +124,7 @@ app.use(express.static(path.join(__dirname, 'images')));
         // console.log(`Running ffmpeg with args: ${ffmpegArgs.join(' ')}`);
         // The raw nvenc ffmpeg command will be without new lines:
         // No need for -hls_flags append_list; just rerun the same command to resume/complete VOD
-        const ffmpeg = spawn('ffmpeg', ffmpegArgs, { detached: true, stdio: ['ignore', 'ignore', 'pipe'] });
+        const ffmpeg = spawn('ffmpeg', ffmpegArgs, { stdio: ['ignore', 'ignore', 'pipe'] });
         
         runningHLS[file.id] = ffmpeg;
         
@@ -144,9 +145,24 @@ app.use(express.static(path.join(__dirname, 'images')));
     
     // Serve HLS segments and playlists statically
     app.use('/hls', express.static(path.join(__dirname, 'hls')));
-    const PORT = process.env.PORT || 3000;
-    app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, () => {
+    console.log(`Server running on http://localhost:${PORT}`);
+});
+server.on('error', err => {
+    if (err.code === 'EADDRINUSE') {
+        console.error(`Port ${PORT} is already in use. Please choose another port.`);
+        process.exit(1);
+    } else {
+        console.error('Server error:', err);
+        process.exit(1);
+    }
+});
+    process.on('uncaughtException', err => {
+    console.error('Uncaught Exception:', err);
+});
+    process.on('unhandledRejection', err => {
+        console.error('Unhandled Rejection:', err);
     });
     
     exports.hashFilename = hashFilename;

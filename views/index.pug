@@ -34,5 +34,5 @@ html(lang='')
                     div(class='panel-heading')
                         h2(class='panel-title') #{file.filename}
                     div(class='panel-body')
-                        !='<img src=\'' + encodeURI(file.filename) + '.png\', alt=\'Thumbnail\', class=\'img-thumbnail\'/>'
+                        !='<img src="/images/' + encodeURI(file.filename) + '.jpg" alt=\'Thumbnail\' class=\'img-thumbnail\'/>'
                         !=`<a href=/media/${encodeURI(file.id)} class='btn btn-primary'>Watch Now!</a>`

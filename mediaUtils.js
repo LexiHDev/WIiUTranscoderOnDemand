@@ -1,13 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { MEDIA_DIR } = require('.');
+
 
 function hashFilename(filename) {
     return crypto.createHash('sha1').update(filename).digest('hex');
 }
 
-function getMediaFiles() {
+function getMediaFiles(MEDIA_DIR) {
     if (!fs.existsSync(MEDIA_DIR)) {
         fs.mkdirSync(MEDIA_DIR, { recursive: true });
     }
@@ -15,8 +15,8 @@ function getMediaFiles() {
     return files.map((filename) => ({ id: hashFilename(filename), filename }));
 }
 
-function getImageFromVideo(filename) {
-    const files = getMediaFiles();
+function getImageFromVideo(filename, MEDIA_DIR) {
+    const files = getMediaFiles(MEDIA_DIR);
     const file = files.find(f => f.filename === filename);
     if (!file) {
         return null;
@@ -39,10 +39,10 @@ function getImageFromVideo(filename) {
 }
 
 // generate thumbnails for all media files
-function generateThumbnails() {
-    const files = getMediaFiles();
+function generateThumbnails(MEDIA_DIR) {
+    const files = getMediaFiles(MEDIA_DIR);
     files.forEach(file => {
-        getImageFromVideo(file.filename);
+        getImageFromVideo(file.filename, MEDIA_DIR);
     });
 }
 exports.hashFilename = hashFilename;
