@@ -1,0 +1,38 @@
+doctype
+html(lang='')
+    head
+        meta(charset='utf-8')
+        meta(name='viewport', content='width=device-width, initial-scale=1')
+        //- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags
+        meta(name='description', content='')
+        meta(name='author', content='')
+        title
+        //- Bootstrap core CSS
+        script(src="./respond.min.js" type="application/javascript")
+        script(src="./respond.matchmedia.js" type="application/javascript")
+        script(src="./html5shiv.min.js" type="application/javascript")
+        script(src="./html5shiv-printshiv.min.js" type="application/javascript")  
+        script(src="./bootstrap.min.js" type="application/javascript") 
+        link(href='./bootstrap.min.css', rel='stylesheet')
+        
+        link(href='./global.css', rel='stylesheet')
+        //- link(href='https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css', rel='stylesheet')
+        //- link(href='/css/style.css', rel='stylesheet')
+    body
+        nav(class='navbar navbar-inverse navbar-default')
+            div(class='container-fluid')
+                div(class='navbar')
+                    a(class='navbar-header', href='/') &#xE073; Wii U Transcoder On Demand
+                    div(class='form-group')
+                        form(action='/search')
+                        input(class='form-control' type='text', placeholder='Search')
+                    button(class='btn, btn-default' type='submit') Submit
+        div(class='container')
+            h1 Media Files
+            for file in files
+                div(class='media-file panel panel-default')
+                    div(class='panel-heading')
+                        h2(class='panel-title') #{file.filename}
+                    div(class='panel-body')
+                        !='<img src=\'' + encodeURI(file.filename) + '.png\', alt=\'Thumbnail\', class=\'img-thumbnail\'/>'
+                        !=`<a href=/media/${encodeURI(file.id)} class='btn btn-primary'>Watch Now!</a>`
